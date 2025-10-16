@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Log Viewer (Frontend Only)</title>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div id="app" class="max-w-6xl mx-auto p-6">
+    <h1 class="text-2xl font-semibold mb-4">Log Viewer — Frontend Only</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="md:col-span-2 space-y-2">
+        <label class="block text-sm font-medium">Upload log file</label>
+        <input type="file" @change="onFile" accept=".log,.txt" class="block w-full"/>
+        <div class="mt-2">
+          <label class="block text-sm font-medium">Or paste logs here</label>
+          <textarea v-model="pasteText" rows="6" class="w-full p-2 border rounded" placeholder="Paste log text..."></textarea>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <button @click="importPasted" class="px-4 py-2 bg-blue-600 text-white rounded">Import Pasted</button>
+          <button @click="parseAndShow" class="px-4 py-2 bg-green-600 text-white rounded">Parse & Show</button>
+          <button @click="clearAll" class="px-4 py-2 bg-red-500 text-white rounded">Clear</button>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-sm font-medium">Filters</label>
+        <div class="flex gap-2 items-center">
+          <select v-model="filters.level" class="p-2 border rounded w-full">
+            <option value="">All Levels</option>
+            <option v-for="l in levels" :key="l" :value="l">{{ l }}</option>
+          </select>
+        </div>
+        <div class="flex gap-2 items-center">
+          <input type="date" v-model="filters.from" class="p-2 border rounded w-1/2"/>
+          <input type="date" v-model="filters.to" class="p-2 border rounded w-1/2"/>
+        </div>
+        <input v-model="filters.q" placeholder="Search message / context..." class="w-full p-2 border rounded" />
+        <div class="text-sm text-gray-600">Showing {{ filtered.length }} of {{ entries.length }} entries</div>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto bg-white rounded shadow">
+      <table class="min-w-full divide-y">
+        <thead class="bg-gray-100 text-left">
+          <tr>
+            <th class="p-2 w-40">Datetime</th>
+            <th class="p-2 w-28">Level</th>
+            <th class="p-2">Message</th>
+            <th class="p-2 w-40">Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(e, idx) in paged" :key="e._id" class="hover:bg-gray-50 cursor-pointer" @click="openDetail(e)">
+            <td class="p-2 align-top">{{ formatDt(e.dt) }}</td>
+            <td class="p-2 align-top"><span class="px-2 py-1 rounded text-white text-xs" :class="levelColor(e.level)">{{ e.level }}</span></td>
+            <td class="p-2 align-top"><div class="line-clamp-2" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">{{ e.message }}</div></td>
+            <td class="p-2 align-top text-sm text-gray-600">{{ e.source_file || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex justify-between items-center mt-3">
+      <div>
+        <label class="mr-2">Per page:</label>
+        <select v-model.number="perPage" class="p-1 border rounded">
+          <option :value="10">10</option>
+          <option :value="25">25</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+      </div>
+      <div class="space-x-2">
+        <button :disabled="page===1" @click="page--" class="px-3 py-1 border rounded">Prev</button>
+        <span>Page {{ page }} / {{ pages }}</span>
+        <button :disabled="page===pages" @click="page++" class="px-3 py-1 border rounded">Next</button>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div v-if="detail" class="fixed inset-0 bg-black/50 flex items-start md:items-center justify-center p-4 z-50">
+      <div class="bg-white max-w-3xl w-full rounded shadow p-4 overflow-auto max-h-[80vh]">
+        <div class="flex justify-between items-start">
+          <div>
+            <h2 class="text-lg font-semibold">{{ detail.level }} — {{ formatDt(detail.dt) }}</h2>
+            <div class="text-sm text-gray-600">{{ detail.channel || 'channel' }} • {{ detail.env || 'env' }}</div>
+          </div>
+          <div class="flex gap-2">
+            <button @click="copyDetail" class="px-3 py-1 border rounded">Copy</button>
+            <button @click="detail=null" class="px-3 py-1 bg-red-500 text-white rounded">Close</button>
+          </div>
+        </div>
+        <hr class="my-3" />
+        <pre class="whitespace-pre-wrap text-sm bg-gray-50 p-3 rounded"><strong>Message:</strong> {{ detail.message }}
+        
+<strong>Context:</strong>
+{{ pretty(detail.context) }}
+
+<strong>Extra:</strong>
+{{ pretty(detail.extra) }}
+
+<strong>Source:</strong> {{ detail.source_file || '-' }} : {{ detail.line_no || '-' }}
+        </pre>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed } = Vue;
+
+    createApp({
+      data() {
+        return {
+          rawText: '',
+          pasteText: '',
+          entries: [],
+          filters: { level: '', from: '', to: '', q: '' },
+          page: 1,
+          perPage: 25,
+          detail: null,
+        }
+      },
+      computed: {
+        levels() {
+          // collect unique levels
+          const s = new Set(this.entries.map(e=>e.level).filter(Boolean));
+          return Array.from(s).sort();
+        },
+        filtered() {
+          const f = this.filters;
+          return this.entries.filter(e => {
+            if (f.level && e.level !== f.level) return false;
+            if (f.from) {
+              const dFrom = new Date(f.from);
+              if (new Date(e.dt) < dFrom) return false;
+            }
+            if (f.to) {
+              // include full day
+              const dTo = new Date(f.to); dTo.setHours(23,59,59,999);
+              if (new Date(e.dt) > dTo) return false;
+            }
+            if (f.q) {
+              const q = f.q.toLowerCase();
+              const hay = (e.message + ' ' + JSON.stringify(e.context || '') + ' ' + (e.source_file||'')).toLowerCase();
+              if (!hay.includes(q)) return false;
+            }
+            return true;
+          });
+        },
+        pages() {
+          return Math.max(1, Math.ceil(this.filtered.length / this.perPage));
+        },
+        paged() {
+          const start = (this.page-1)*this.perPage;
+          return this.filtered.slice(start, start + this.perPage);
+        }
+      },
+      watch: {
+        perPage() { this.page = 1 },
+        filters: { deep: true, handler() { this.page = 1 } }
+      },
+      methods: {
+        onFile(e) {
+          const f = e.target.files[0];
+          if (!f) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            this.rawText = ev.target.result;
+            this.parseText(this.rawText, f.name);
+          };
+          reader.readAsText(f);
+        },
+        importPasted() {
+          if (!this.pasteText.trim()) { alert('Paste some text first'); return; }
+          this.rawText = this.pasteText;
+          this.parseText(this.rawText, 'pasted');
+        },
+        parseAndShow() {
+          if (!this.rawText && this.pasteText) {
+            this.rawText = this.pasteText;
+          }
+          if (!this.rawText) { alert('No logs to parse. Upload file or paste text.'); return; }
+          this.parseText(this.rawText, 'input');
+        },
+        clearAll() {
+          this.rawText = ''; this.pasteText=''; this.entries=[]; this.filters={level:'',from:'',to:'',q:''};
+        },
+        parseText(text, source='pasted') {
+          // basic parser: support Laravel text lines and JSON-lines
+          const lines = text.split(/\r\n|\n/);
+          const parsed = [];
+          const re = /^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+([\w\-]+)\.([A-Z]+):\s+(.*)$/;
+          let buffer = null;
+
+          lines.forEach((ln, idx) => {
+            const t = ln.trim();
+            if (!t) {
+              // blank line -> flush?
+              if (buffer) { parsed.push(this.makeFromBuffer(buffer, source)); buffer=null; }
+              return;
+            }
+            // JSON line?
+            if (t.startsWith('{') && t.endsWith('}')) {
+              try {
+                const obj = JSON.parse(t);
+                parsed.push(this.fromJsonLine(obj, source, idx+1));
+                return;
+              } catch(e) {
+                // fallthrough
+              }
+            }
+            const m = ln.match(re);
+            if (m) {
+              // flush previous buffer
+              if (buffer) { parsed.push(this.makeFromBuffer(buffer, source)); }
+              buffer = { first: ln, rest: [] , line_no: idx+1 };
+            } else {
+              if (buffer) buffer.rest.push(ln);
+              else {
+                // stray line: create simple entry
+                parsed.push({
+                  _id: `${source}-${idx+1}-${Math.random().toString(36).slice(2,9)}`,
+                  dt: new Date().toISOString(),
+                  level: 'INFO',
+                  channel: '',
+                  env: '',
+                  message: ln,
+                  context: null,
+                  extra: null,
+                  source_file: source,
+                  line_no: idx+1
+                });
+              }
+            }
+          });
+          if (buffer) parsed.push(this.makeFromBuffer(buffer, source));
+
+          // merge: keep newest at top
+          this.entries = parsed.reverse().map((e,i)=>({ ...e, _id: `${source}-${i}-${Math.random().toString(36).slice(2,6)}` }));
+          this.page = 1;
+        },
+        makeFromBuffer(buffer, source) {
+          const re = /^\[(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\]\s+([\w\-]+)\.([A-Z]+):\s+(.*)$/;
+          const m = buffer.first.match(re);
+          if (!m) {
+            return {
+              _id: `${source}-${buffer.line_no}`,
+              dt: new Date().toISOString(),
+              level: 'INFO',
+              channel: '',
+              env: '',
+              message: [buffer.first, ...buffer.rest].join('\n'),
+              context: null,
+              extra: null,
+              source_file: source,
+              line_no: buffer.line_no
+            };
+          }
+          const dt = new Date(m[1]).toISOString();
+          const env = m[2];
+          const level = m[3];
+          let rest = m[4] || '';
+          // if rest ends with JSON-like { ... } try parse last {...}
+          let context = null, extra = null;
+          const joined = [rest, ...buffer.rest].join('\n').trim();
+          // try to extract last JSON object if exists
+          const lastBrace = joined.lastIndexOf('{');
+          if (lastBrace !== -1) {
+            const possible = joined.slice(lastBrace);
+            try {
+              const jo = JSON.parse(possible);
+              context = jo;
+              rest = joined.slice(0, lastBrace).trim();
+            } catch(e) {
+              // ignore
+            }
+          }
+          return {
+            _id: `${source}-${buffer.line_no}`,
+            dt, level,
+            channel: '', env,
+            message: rest || joined,
+            context,
+            extra,
+            source_file: source,
+            line_no: buffer.line_no
+          };
+        },
+        fromJsonLine(obj, source, lineNo) {
+          const dt = obj.datetime ? new Date(obj.datetime).toISOString() : (new Date()).toISOString();
+          const level = obj.level_name || obj.level || 'INFO';
+          return {
+            _id: `${source}-json-${lineNo}`,
+            dt, level,
+            channel: obj.channel || '',
+            env: obj.environment || '',
+            message: obj.message || JSON.stringify(obj),
+            context: obj.context || obj.extra || null,
+            extra: obj.extra || null,
+            source_file: source,
+            line_no: lineNo
+          };
+        },
+        formatDt(d) {
+          try { const dt = new Date(d); return dt.toLocaleString(); } catch(e){ return d; }
+        },
+        levelColor(level) {
+          const map = { EMERGENCY:'bg-red-800', ALERT:'bg-red-700', CRITICAL:'bg-red-600', ERROR:'bg-red-500', WARNING:'bg-yellow-500 text-black', NOTICE:'bg-blue-500', INFO:'bg-gray-500', DEBUG:'bg-green-600' };
+          return map[level] || 'bg-gray-500';
+        },
+        openDetail(e) { this.detail = e; },
+        pretty(obj) { try { return obj ? JSON.stringify(obj, null, 2) : '{}'; } catch(e){ return String(obj); } },
+        copyDetail() {
+          const txt = `Level: ${this.detail.level}\nDatetime: ${this.detail.dt}\nMessage: ${this.detail.message}\nContext: ${this.pretty(this.detail.context)}`;
+          navigator.clipboard?.writeText(txt).then(()=> alert('Copied to clipboard'));
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
