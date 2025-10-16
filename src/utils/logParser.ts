@@ -3,7 +3,6 @@ import { LogEntry } from '@/stores/logStore'
 export class LogParser {
   static parseFile(content: string, fileName: string): LogEntry[] {
     const lines = content.split(/\r?\n/)
-    const entries: LogEntry[] = []
     
     // Try different parsing strategies
     const parsers = [

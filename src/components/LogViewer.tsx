@@ -408,7 +408,7 @@ export default function LogViewer({ fileId, height = 600 }: LogViewerProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
                 <p className={`text-lg font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  No results found for "{liveSearch}"
+                  No results found for &quot;{liveSearch}&quot;
                 </p>
                 <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Try a different search term

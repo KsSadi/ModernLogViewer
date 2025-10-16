@@ -4,8 +4,8 @@ export interface LogEntry {
   level: LogLevel;
   message: string;
   source?: string;
-  context?: Record<string, any>;
-  extra?: Record<string, any>;
+  context?: Record<string, unknown>;
+  extra?: Record<string, unknown>;
   isBookmarked?: boolean;
   channel?: string;
   environment?: string;

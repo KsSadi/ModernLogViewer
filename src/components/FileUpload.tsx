@@ -60,7 +60,7 @@ export default function FileUpload() {
 
     try {
       const blob = new Blob([pastedText], { type: 'text/plain' })
-      const file = new (window as any).File([blob], `pasted-logs-${Date.now()}.log`, { type: 'text/plain' }) as File
+      const file = new File([blob], `pasted-logs-${Date.now()}.log`, { type: 'text/plain' })
       const results = await LogParser.parseMultipleFiles([file])
 
       results.forEach(({ file: f, entries }) => {

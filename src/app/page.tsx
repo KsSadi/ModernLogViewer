@@ -407,7 +407,7 @@ export default function Home() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setLogViewTab(tab.id as any)}
+                onClick={() => setLogViewTab(tab.id as 'logs' | 'analytics')}
                 className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
                   logViewTab === tab.id
                     ? isDarkMode

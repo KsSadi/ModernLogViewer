@@ -6,8 +6,8 @@ export interface LogEntry {
   timestamp: Date
   level: 'DEBUG' | 'INFO' | 'NOTICE' | 'WARNING' | 'ERROR' | 'CRITICAL' | 'ALERT' | 'EMERGENCY'
   message: string
-  context?: any
-  extra?: any
+  context?: Record<string, unknown>
+  extra?: Record<string, unknown>
   channel?: string
   environment?: string
   sourceFile?: string

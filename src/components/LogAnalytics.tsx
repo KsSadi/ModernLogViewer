@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 
 export default function LogAnalytics() {
-  const { getActiveFile, getLogStats, isDarkMode, files } = useLogStore()
+  const { getActiveFile, getLogStats, isDarkMode } = useLogStore()
   
   const activeFile = getActiveFile()
   const stats = useMemo(() => getLogStats(), [getLogStats])
@@ -133,7 +133,7 @@ export default function LogAnalytics() {
                   cx="50%"
                   cy="50%"
                   outerRadius={80}
-                  label={(entry: any) => `${entry.level} ${(entry.percent * 100).toFixed(0)}%`}
+                  label
                 >
                   {levelChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />

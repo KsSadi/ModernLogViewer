@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { ReactNode, useRef, useEffect } from 'react'
+import { ReactNode } from 'react'
 import { useLogStore } from '@/stores/logStore'
 import { Moon, Sun, Menu, X } from 'lucide-react'
 import { useState } from 'react'
@@ -18,7 +18,6 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
   const { isDarkMode, toggleDarkMode } = useLogStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [showShortcutsToast, setShowShortcutsToast] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Setup keyboard shortcuts
   useKeyboardShortcuts({

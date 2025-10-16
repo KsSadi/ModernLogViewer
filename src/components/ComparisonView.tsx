@@ -181,7 +181,7 @@ export default function ComparisonView() {
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {selectedFileObjects.map((file, index) => {
+                {selectedFileObjects.map((file) => {
                   const stats = getLogStats(file!.id)
                   
                   return (
@@ -250,7 +250,7 @@ export default function ComparisonView() {
             <div className="space-y-4">
               {comparisonMode === 'side-by-side' && selectedFiles.length === 2 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {selectedFileObjects.map((file, index) => (
+                  {selectedFileObjects.map((file) => (
                     <div key={file!.id}>
                       <h3 className={`font-medium mb-3 ${
                         isDarkMode ? 'text-gray-200' : 'text-gray-800'
