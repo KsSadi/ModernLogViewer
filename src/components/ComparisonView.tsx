@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useLogStore } from '@/stores/logStore'
-import { GitCompare, ArrowLeftRight, BarChart3, Users, Target, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react'
+import { GitCompare, ArrowLeftRight, BarChart3, Users, Target, CheckCircle, AlertCircle } from 'lucide-react'
 import LogViewer from './LogViewer'
 import { compareLogFiles, ComparisonResult } from '@/utils/logComparison'
 

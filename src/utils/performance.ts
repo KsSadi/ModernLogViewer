@@ -98,6 +98,7 @@ export class MemoryManager {
       
       // Force garbage collection if available (development only)
       if (typeof window !== 'undefined' && 'gc' in window) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).gc()
       }
     }, PERFORMANCE_CONFIG.CLEANUP_INTERVAL)

@@ -48,7 +48,6 @@ function calculateSimilarity(str1: string, str2: string): number {
   const words2 = str2.toLowerCase().split(/\s+/)
   
   const commonWords = words1.filter(word => words2.includes(word))
-  const totalWords = new Set([...words1, ...words2]).size
   
   const wordSimilarity = commonWords.length / Math.max(words1.length, words2.length)
   

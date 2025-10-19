@@ -4,6 +4,7 @@ import { useRef, useCallback } from 'react'
  * Custom hook for debouncing function calls
  * Improves performance by limiting how often expensive operations are called
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useDebounce<T extends (...args: any[]) => any>(
   func: T,
   delay: number
@@ -30,6 +31,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
  * Custom hook for throttling function calls
  * Ensures function is called at most once per interval
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useThrottle<T extends (...args: any[]) => any>(
   func: T,
   limit: number

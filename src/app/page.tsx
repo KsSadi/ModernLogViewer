@@ -43,7 +43,7 @@ export default function Home() {
   const bookmarkedEntries = getBookmarkedEntries()
 
   // Handle file upload completion - auto-navigate to logs tab
-  const handleFileUploaded = (fileId: string, fileName: string) => {
+  const handleFileUploaded = () => {
     setActiveTab('logs')
     setLogViewTab('logs')
   }

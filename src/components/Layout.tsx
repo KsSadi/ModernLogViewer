@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { ReactNode, useRef } from 'react'
+import { ReactNode } from 'react'
 import { useLogStore } from '@/stores/logStore'
 import { Moon, Sun, Menu, X } from 'lucide-react'
 import { useState } from 'react'
