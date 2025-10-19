@@ -1,0 +1,18 @@
+[2024-10-19 14:30:15] production.ERROR: Database connection failed {"user_id":123,"query":"SELECT * FROM users"}
+[2024-10-19 14:30:16] production.INFO: Retrying database connection {"attempt":1}
+[2024-10-19 14:30:17] production.WARNING: High memory usage detected {"memory_usage":"95%"}
+[2024-10-19 14:30:18] production.DEBUG: Query executed successfully {"query_time":"0.05s"}
+[2024-10-19 14:30:19] production.CRITICAL: Payment gateway timeout {"transaction_id":"tx_123456","amount":99.99}
+[2024-10-19 14:30:20] production.NOTICE: User login successful {"user_id":456,"ip":"192.168.1.100"}
+
+{"timestamp":"2024-10-19T14:31:00Z","level":"ERROR","message":"API rate limit exceeded","context":{"endpoint":"/api/users","limit":1000}}
+{"timestamp":"2024-10-19T14:31:01Z","level":"INFO","message":"Cache cleared successfully","context":{"cache_type":"redis"}}
+{"timestamp":"2024-10-19T14:31:02Z","level":"WARNING","message":"Disk space low","context":{"available_space":"2GB"}}
+
+2024-10-19 14:32:00 ERROR Failed to send email notification
+2024-10-19 14:32:01 INFO Email queue processed successfully
+2024-10-19 14:32:02 WARNING SSL certificate expires soon
+
+127.0.0.1 - - [19/Oct/2024:14:33:00 +0000] "GET /api/users HTTP/1.1" 200 1234
+127.0.0.1 - - [19/Oct/2024:14:33:01 +0000] "POST /api/login HTTP/1.1" 401 567
+127.0.0.1 - - [19/Oct/2024:14:33:02 +0000] "GET /dashboard HTTP/1.1" 500 890
