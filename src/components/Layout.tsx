@@ -92,9 +92,13 @@ export default function Layout({ children, activeTab, onTabChange }: LayoutProps
               {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <button
+              onClick={() => onTabChange('dashboard')}
+              className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity cursor-pointer"
+              title="Go to Dashboard"
+            >
               Modern Log Viewer
-            </h1>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">

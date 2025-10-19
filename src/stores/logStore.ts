@@ -1,5 +1,6 @@
 ﻿import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
+import { shallow } from 'zustand/shallow'
 
 export interface LogEntry {
   id: string

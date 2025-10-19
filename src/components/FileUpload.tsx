@@ -6,8 +6,12 @@ import { Upload, File as FileIcon, X, AlertCircle, CheckCircle, FileText } from 
 import { useLogStore } from '@/stores/logStore'
 import { LogParser } from '@/utils/logParser'
 
-export default function FileUpload() {
-  const { addFile, isDarkMode } = useLogStore()
+interface FileUploadProps {
+  onFileUploaded?: (fileId: string, fileName: string) => void
+}
+
+export default function FileUpload({ onFileUploaded }: FileUploadProps = {}) {
+  const { addFile, isDarkMode, setActiveFile } = useLogStore()
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [showPasteModal, setShowPasteModal] = useState(false)
@@ -21,6 +25,7 @@ export default function FileUpload() {
 
     try {
       const results = await LogParser.parseMultipleFiles(acceptedFiles)
+      let firstFileId: string | null = null
 
       results.forEach(({ file, entries }) => {
         const logFile = {
@@ -31,7 +36,18 @@ export default function FileUpload() {
           uploadedAt: new Date()
         }
         addFile(logFile)
+        
+        // Remember the first file ID for auto-navigation
+        if (!firstFileId) {
+          firstFileId = logFile.id
+        }
       })
+
+      // If only one file was uploaded, automatically open it
+      if (results.length === 1 && firstFileId) {
+        setActiveFile(firstFileId)
+        onFileUploaded?.(firstFileId, results[0].file.name)
+      }
 
       setUploadStatus({
         type: 'success',
@@ -47,7 +63,7 @@ export default function FileUpload() {
     } finally {
       setUploading(false)
     }
-  }, [addFile])
+  }, [addFile, setActiveFile, onFileUploaded])
 
   const handlePasteSubmit = async () => {
     if (!pastedText.trim()) {
@@ -62,6 +78,7 @@ export default function FileUpload() {
       const blob = new Blob([pastedText], { type: 'text/plain' })
       const file = new File([blob], `pasted-logs-${Date.now()}.log`, { type: 'text/plain' })
       const results = await LogParser.parseMultipleFiles([file])
+      let pastedFileId: string | null = null
 
       results.forEach(({ file: f, entries }) => {
         const logFile = {
@@ -72,7 +89,14 @@ export default function FileUpload() {
           uploadedAt: new Date()
         }
         addFile(logFile)
+        pastedFileId = logFile.id
       })
+
+      // Auto-open the pasted content
+      if (pastedFileId) {
+        setActiveFile(pastedFileId)
+        onFileUploaded?.(pastedFileId, file.name)
+      }
 
       setUploadStatus({
         type: 'success',

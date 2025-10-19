@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useLogStore } from '@/stores/logStore'
+import { useDebounce } from '@/hooks/usePerformance'
 import { 
   ChevronDown,
   AlertTriangle,
@@ -20,6 +21,17 @@ export default function LogFilters() {
   const isDarkMode = useLogStore(state => state.isDarkMode)
   const files = useLogStore(state => state.files)
   const activeFileId = useLogStore(state => state.activeFileId)
+  
+  // Local state for search input (for immediate UI feedback)
+  const [searchInput, setSearchInput] = useState(filters.searchQuery || '')
+  
+  // Debounced search to improve performance
+  const debouncedUpdateSearch = useDebounce(
+    useCallback((query: string) => {
+      updateFilters({ searchQuery: query })
+    }, [updateFilters]),
+    300 // 300ms delay
+  )
   
   const activeFile = useMemo(() => {
     return files.find(f => f.id === activeFileId) || null
@@ -179,13 +191,14 @@ export default function LogFilters() {
     }
   ]
 
-  const toggleLevel = (level: string) => {
+  // Optimized toggle function with useCallback
+  const toggleLevel = useCallback((level: string) => {
     const newLevels = {
       ...filters.levels,
       [level]: !filters.levels?.[level]
     }
     updateFilters({ levels: newLevels })
-  }
+  }, [filters.levels, updateFilters])
 
   const totalEntries = filteredEntries.length
   const totalUnfilteredEntries = activeFile?.entries.length || 0
@@ -298,8 +311,12 @@ export default function LogFilters() {
             </div>
             <input
               type="text"
-              value={filters.searchQuery || ''}
-              onChange={(e) => updateFilters({ searchQuery: e.target.value })}
+              value={searchInput}
+              onChange={(e) => {
+                const value = e.target.value
+                setSearchInput(value)
+                debouncedUpdateSearch(value)
+              }}
               placeholder="Live search in messages, channels, environment..."
               className={`w-full pl-16 pr-4 py-3 rounded-lg border-2 transition-all ${
                 isDarkMode
@@ -307,9 +324,12 @@ export default function LogFilters() {
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
               } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             />
-            {filters.searchQuery && (
+            {searchInput && (
               <button
-                onClick={() => updateFilters({ searchQuery: '' })}
+                onClick={() => {
+                  setSearchInput('')
+                  updateFilters({ searchQuery: '' })
+                }}
                 className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
                   isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
                 }`}

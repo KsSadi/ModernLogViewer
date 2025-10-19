@@ -42,6 +42,12 @@ export default function Home() {
   const filteredEntries = getFilteredEntries()
   const bookmarkedEntries = getBookmarkedEntries()
 
+  // Handle file upload completion - auto-navigate to logs tab
+  const handleFileUploaded = (fileId: string, fileName: string) => {
+    setActiveTab('logs')
+    setLogViewTab('logs')
+  }
+
   const handleExport = (format: 'json' | 'csv') => {
     const entries = selectedEntries.size > 0 
       ? filteredEntries.filter(e => selectedEntries.has(e.id))
@@ -102,7 +108,7 @@ export default function Home() {
             </p>
 
             <div className="max-w-2xl mx-auto">
-              <FileUpload />
+              <FileUpload onFileUploaded={handleFileUploaded} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-4xl mx-auto">
@@ -250,31 +256,31 @@ export default function Home() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <FileUpload />
+          <FileUpload onFileUploaded={handleFileUploaded} />
           <button
             onClick={() => setActiveTab('analytics')}
             disabled={files.length === 0}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
               isDarkMode 
                 ? 'bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-700 disabled:text-gray-500' 
                 : 'bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-300 disabled:text-gray-500'
             } disabled:cursor-not-allowed`}
           >
-            <BarChart3 size={18} />
-            View Analytics
+            <BarChart3 size={16} />
+            Analytics
           </button>
           
           <button
             onClick={() => setActiveTab('bookmarks')}
             disabled={bookmarkedEntries.length === 0}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
               isDarkMode 
                 ? 'bg-gray-700 hover:bg-gray-600 text-gray-200 disabled:bg-gray-800 disabled:text-gray-600' 
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:bg-gray-100 disabled:text-gray-400'
             } disabled:cursor-not-allowed`}
           >
-            <Star size={18} />
-            View Bookmarks ({bookmarkedEntries.length})
+            <Star size={16} />
+            Bookmarks ({bookmarkedEntries.length})
           </button>
         </div>
       </div>
@@ -296,7 +302,7 @@ export default function Home() {
           <p className={`mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             Upload some log files to start analyzing them
           </p>
-          <FileUpload />
+          <FileUpload onFileUploaded={handleFileUploaded} />
         </div>
       )
     }

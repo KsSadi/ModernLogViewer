@@ -1,14 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useLogStore } from '@/stores/logStore'
-import { GitCompare, ArrowLeftRight, BarChart3, Users } from 'lucide-react'
+import { GitCompare, ArrowLeftRight, BarChart3, Users, Target, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react'
 import LogViewer from './LogViewer'
+import { compareLogFiles, ComparisonResult } from '@/utils/logComparison'
 
 export default function ComparisonView() {
   const { files, isDarkMode, getLogStats } = useLogStore()
   const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [comparisonMode, setComparisonMode] = useState<'side-by-side' | 'overlay'>('side-by-side')
+  const [activeComparisonTab, setActiveComparisonTab] = useState<'stats' | 'matches'>('stats')
+
+  // Compute log comparison when two files are selected
+  const comparisonResult: ComparisonResult | null = useMemo(() => {
+    if (selectedFiles.length !== 2) return null
+    
+    const file1 = files.find(f => f.id === selectedFiles[0])
+    const file2 = files.find(f => f.id === selectedFiles[1])
+    
+    if (!file1 || !file2) return null
+    
+    return compareLogFiles(file1.entries, file2.entries, 0.85)
+  }, [selectedFiles, files])
 
   const handleFileToggle = (fileId: string) => {
     setSelectedFiles(prev => {
@@ -166,81 +180,258 @@ export default function ComparisonView() {
             </div>
           )}
 
-          {/* Statistics Comparison */}
-          {selectedFileObjects.length === 2 && (
-            <div className={`p-4 rounded-lg border ${
+          {/* Analysis Tabs */}
+          {selectedFileObjects.length === 2 && comparisonResult && (
+            <div className={`rounded-lg border ${
               isDarkMode 
                 ? 'bg-gray-800 border-gray-700' 
                 : 'bg-white border-gray-200'
             }`}>
-              <h3 className={`font-medium mb-4 flex items-center gap-2 ${
-                isDarkMode ? 'text-gray-200' : 'text-gray-800'
-              }`}>
-                <BarChart3 size={20} />
-                Statistics Comparison
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {selectedFileObjects.map((file) => {
-                  const stats = getLogStats(file!.id)
-                  
-                  return (
-                    <div key={file!.id}>
-                      <h4 className={`font-medium mb-3 ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        {file!.name}
-                      </h4>
+              {/* Tab Headers */}
+              <div className="flex border-b border-gray-700">
+                <button
+                  onClick={() => setActiveComparisonTab('stats')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeComparisonTab === 'stats'
+                      ? isDarkMode
+                        ? 'bg-blue-900/30 text-blue-400 border-b-2 border-blue-400'
+                        : 'bg-blue-50 text-blue-600 border-b-2 border-blue-500'
+                      : isDarkMode
+                        ? 'text-gray-400 hover:text-gray-300'
+                        : 'text-gray-600 hover:text-gray-700'
+                  }`}
+                >
+                  <BarChart3 size={16} className="inline mr-2" />
+                  File Statistics
+                </button>
+                <button
+                  onClick={() => setActiveComparisonTab('matches')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeComparisonTab === 'matches'
+                      ? isDarkMode
+                        ? 'bg-blue-900/30 text-blue-400 border-b-2 border-blue-400'
+                        : 'bg-blue-50 text-blue-600 border-b-2 border-blue-500'
+                      : isDarkMode
+                        ? 'text-gray-400 hover:text-gray-300'
+                        : 'text-gray-600 hover:text-gray-700'
+                  }`}
+                >
+                  <Target size={16} className="inline mr-2" />
+                  Common Logs ({comparisonResult.matches.length})
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-4">
+                {activeComparisonTab === 'stats' ? (
+                  /* File Statistics */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {selectedFileObjects.map((file) => {
+                      const stats = getLogStats(file!.id)
                       
-                      <div className="space-y-2">
-                        <div className={`flex justify-between text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          <span>Total Entries:</span>
-                          <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
-                            {stats.totalEntries.toLocaleString()}
-                          </span>
+                      return (
+                        <div key={file!.id}>
+                          <h4 className={`font-medium mb-3 ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            {file!.name}
+                          </h4>
+                          
+                          <div className="space-y-2">
+                            <div className={`flex justify-between text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              <span>Total Entries:</span>
+                              <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
+                                {stats.totalEntries.toLocaleString()}
+                              </span>
+                            </div>
+                            
+                            <div className={`flex justify-between text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              <span>Errors:</span>
+                              <span className="text-red-500">
+                                {stats.levelCounts.ERROR || 0}
+                              </span>
+                            </div>
+                            
+                            <div className={`flex justify-between text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              <span>Warnings:</span>
+                              <span className="text-yellow-500">
+                                {stats.levelCounts.WARNING || 0}
+                              </span>
+                            </div>
+                            
+                            <div className={`flex justify-between text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              <span>Time Range:</span>
+                              <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
+                                {Math.ceil((stats.timeRange.end.getTime() - stats.timeRange.start.getTime()) / (1000 * 60 * 60 * 24))} days
+                              </span>
+                            </div>
+                            
+                            <div className={`flex justify-between text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              <span>Top Channels:</span>
+                              <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
+                                {stats.topChannels.length}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        
-                        <div className={`flex justify-between text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          <span>Errors:</span>
-                          <span className="text-red-500">
-                            {stats.levelCounts.ERROR || 0}
-                          </span>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  /* Common Logs Analysis */
+                  <div className="space-y-6">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className={`p-3 rounded-lg ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                      }`}>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Match Rate
                         </div>
-                        
-                        <div className={`flex justify-between text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        <div className={`text-lg font-semibold ${
+                          comparisonResult.stats.matchPercentage > 70 ? 'text-green-500' :
+                          comparisonResult.stats.matchPercentage > 40 ? 'text-yellow-500' : 'text-red-500'
                         }`}>
-                          <span>Warnings:</span>
-                          <span className="text-yellow-500">
-                            {stats.levelCounts.WARNING || 0}
-                          </span>
+                          {comparisonResult.stats.matchPercentage.toFixed(1)}%
                         </div>
-                        
-                        <div className={`flex justify-between text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          <span>Time Range:</span>
-                          <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
-                            {Math.ceil((stats.timeRange.end.getTime() - stats.timeRange.start.getTime()) / (1000 * 60 * 60 * 24))} days
-                          </span>
+                      </div>
+                      
+                      <div className={`p-3 rounded-lg ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                      }`}>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Exact Matches
                         </div>
-                        
-                        <div className={`flex justify-between text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          <span>Top Channels:</span>
-                          <span className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
-                            {stats.topChannels.length}
-                          </span>
+                        <div className={`text-lg font-semibold text-green-500`}>
+                          {comparisonResult.stats.exactMatches}
+                        </div>
+                      </div>
+                      
+                      <div className={`p-3 rounded-lg ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                      }`}>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Similar Matches
+                        </div>
+                        <div className={`text-lg font-semibold text-blue-500`}>
+                          {comparisonResult.stats.similarMatches}
+                        </div>
+                      </div>
+                      
+                      <div className={`p-3 rounded-lg ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                      }`}>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Unique Logs
+                        </div>
+                        <div className={`text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {comparisonResult.stats.uniqueToFile1 + comparisonResult.stats.uniqueToFile2}
                         </div>
                       </div>
                     </div>
-                  )
-                })}
+
+                    {/* Level Breakdown */}
+                    <div>
+                      <h4 className={`font-medium mb-3 ${
+                        isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                      }`}>
+                        Matches by Log Level
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(comparisonResult.stats.levelBreakdown).map(([level, data]) => (
+                          <div key={level} className={`flex items-center justify-between p-2 rounded ${
+                            isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                          }`}>
+                            <span className={`font-medium ${
+                              level === 'ERROR' ? 'text-red-500' :
+                              level === 'WARNING' ? 'text-yellow-500' :
+                              level === 'INFO' ? 'text-blue-500' :
+                              level === 'DEBUG' ? 'text-green-500' :
+                              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                              {level}
+                            </span>
+                            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {data.matches} matches of {Math.max(data.file1Count, data.file2Count)} total
+                              <span className="ml-2 text-xs">
+                                ({data.file1Count} | {data.file2Count})
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Matching Logs Display */}
+                    {comparisonResult.matches.length > 0 && (
+                      <div>
+                        <h4 className={`font-medium mb-3 ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`}>
+                          Matching Log Entries
+                        </h4>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {comparisonResult.matches.slice(0, 20).map((match, index) => (
+                            <div key={index} className={`p-3 rounded-lg border ${
+                              match.matchType === 'exact'
+                                ? isDarkMode
+                                  ? 'bg-green-900/20 border-green-700'
+                                  : 'bg-green-50 border-green-200'
+                                : isDarkMode
+                                  ? 'bg-blue-900/20 border-blue-700'
+                                  : 'bg-blue-50 border-blue-200'
+                            }`}>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className={`flex items-center gap-2 text-xs ${
+                                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                                }`}>
+                                  {match.matchType === 'exact' ? (
+                                    <CheckCircle size={14} className="text-green-500" />
+                                  ) : (
+                                    <AlertCircle size={14} className="text-blue-500" />
+                                  )}
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    match.file1Entry.level === 'ERROR' ? 'bg-red-500 text-white' :
+                                    match.file1Entry.level === 'WARNING' ? 'bg-yellow-500 text-white' :
+                                    match.file1Entry.level === 'INFO' ? 'bg-blue-500 text-white' :
+                                    'bg-green-500 text-white'
+                                  }`}>
+                                    {match.file1Entry.level}
+                                  </span>
+                                  <span>
+                                    {match.matchType === 'exact' ? 'Exact Match' : `${(match.similarity * 100).toFixed(0)}% Similar`}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className={`text-sm font-mono leading-relaxed ${
+                                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                              }`}>
+                                {match.file1Entry.message}
+                              </div>
+                            </div>
+                          ))}
+                          {comparisonResult.matches.length > 20 && (
+                            <div className={`text-center text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              ... and {comparisonResult.matches.length - 20} more matches
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
